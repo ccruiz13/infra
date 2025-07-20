@@ -24,7 +24,7 @@ Resources:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
 
-  # Política adicional para acceso a SNS, Dynamo, logs, etc.
+  # Política adicional para acceso a SNS, DynamoDB, Logs, SSM y SecretsManager
   LambdaAccessPolicy:
     Type: AWS::IAM::Policy
     Properties:
@@ -43,16 +43,38 @@ Resources:
               - secretsmanager:GetSecretValue
             Resource: "*"
 
+  # Tabla DynamoDB para suscripciones
+  SubscriptionTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: subscription-table
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: customer_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: customer_id
+          KeyType: HASH
+
 Outputs:
 
+  # Export del Topic SNS
   SnsTopicArn:
     Description: ARN del Topic SNS
     Value: !Ref NotificationTopic
     Export:
       Name: SnsTopicArn
 
+  # Export del rol compartido para que lo usen otras plantillas
   LambdaExecutionRoleArn:
     Description: ARN del rol de ejecución para Lambdas
     Value: !GetAtt LambdaExecutionRole.Arn
     Export:
       Name: LambdaExecutionRoleArn
+
+  # Export de la tabla DynamoDB
+  SubscriptionTableName:
+    Description: Nombre de la tabla DynamoDB para suscripciones
+    Value: !Ref SubscriptionTable
+    Export:
+      Name: SubscriptionTableName
