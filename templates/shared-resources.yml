@@ -1,0 +1,80 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Recursos compartidos para APIs de fondos BTG Pactual
+
+Resources:
+
+  # SNS Topic para notificaciones
+  NotificationTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: notificacion-suscription
+
+  # Rol compartido para las Lambdas
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: LambdaExecutionRoleShared
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+  # Política adicional para acceso a SNS, DynamoDB, Logs, SSM y SecretsManager
+  LambdaAccessPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: LambdaSharedAccessPolicy
+      Roles:
+        - !Ref LambdaExecutionRole
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - dynamodb:*
+              - sns:Publish
+              - logs:*
+              - ssm:GetParameter
+              - secretsmanager:GetSecretValue
+            Resource: "*"
+
+  # Tabla DynamoDB para suscripciones
+  SubscriptionTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: subscription-table
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: customer_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: customer_id
+          KeyType: HASH
+
+Outputs:
+
+  # Export del Topic SNS
+  SnsTopicArn:
+    Description: ARN del Topic SNS
+    Value: !Ref NotificationTopic
+    Export:
+      Name: SnsTopicArn
+
+  # Export del rol compartido para que lo usen otras plantillas
+  LambdaExecutionRoleArn:
+    Description: ARN del rol de ejecución para Lambdas
+    Value: !GetAtt LambdaExecutionRole.Arn
+    Export:
+      Name: LambdaExecutionRoleArn
+
+  # Export de la tabla DynamoDB
+  SubscriptionTableName:
+    Description: Nombre de la tabla DynamoDB para suscripciones
+    Value: !Ref SubscriptionTable
+    Export:
+      Name: SubscriptionTableName

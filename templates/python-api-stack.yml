@@ -1,0 +1,37 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Lambda API Python con parámetros reutilizados desde SSM
+
+Resources:
+
+  PythonApiLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: api-python-funds
+      Runtime: python3.11
+      Role: !ImportValue LambdaExecutionRoleArn
+      Handler: main.handler  
+      Code:
+        S3Bucket: ccruiz-btg-functions
+        S3Key: python-code/api-python.zip
+      Timeout: 10
+      MemorySize: 256
+      Environment:
+        Variables:
+          BASE_URL: "{{resolve:ssm:/btg/common/BASE_URL}}"
+          NODE_RUTE: "{{resolve:ssm:/btg/common/NODE_RUTE}}"
+          JAVA_RUTE: "{{resolve:ssm:/btg/common/JAVA_RUTE}}"
+          PYTHON_RUTE: "{{resolve:ssm:/btg/common/PYTHON_RUTE}}"
+          NOTIFICATION_TOPIC_ARN: "{{resolve:ssm:/btg/common/NOTIFICATION_TOPIC_ARN}}"
+          SUBSCRIPTION_TABLE_NAME: "{{resolve:ssm:/btg/common/SUBSCRIPTION_TABLE_NAME}}"
+          DYNAMO_USER_TABLE: "{{resolve:ssm:/btg/common/DYNAMO_USER_TABLE}}"
+
+
+Outputs:
+
+  PythonLambdaName:
+    Description: Nombre de la función Lambda desplegada
+    Value: !Ref PythonApiLambda
+
+  LambdaArn:
+    Description: ARN de la función Lambda
+    Value: !GetAtt PythonApiLambda.Arn

@@ -1,0 +1,18 @@
+[
+  {
+    "ParameterKey": "Environment",
+    "ParameterValue": "dev"
+  },
+  {
+    "ParameterKey": "BaseUrl",
+    "ParameterValue": "https://api-btg.execute-api.us-east-1.amazonaws.com"
+  },
+  {
+    "ParameterKey": "NotificationTopicArn",
+    "ParameterValue": "arn:aws:sns:us-east-1:423889617242:notificacion-suscription"
+  },
+  {
+    "ParameterKey": "DynamoSubscriptionTable",
+    "ParameterValue": "Suscriptions"
+  }
+]

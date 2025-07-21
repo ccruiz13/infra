@@ -1,0 +1,69 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Infraestructura para Node.js API (Fondos de inversión)
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    Description: Entorno de despliegue (dev, test, prod)
+
+Resources:
+
+  NodeApiLambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "NodeApiLambdaRole-${Environment}"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: NodeApiDynamoAndSnsPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:Scan
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - sns:Publish
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - ssm:GetParameter
+                Resource: "*"
+
+  NodeApiFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: NodeApiFunction-dev
+      Runtime: nodejs18.x
+      Handler: index.handler
+      Code:
+        S3Bucket: ccruiz-btg-functions
+        S3Key: node-code/api-node.zip
+      Timeout: 30
+      MemorySize: 256
+      Role: !GetAtt NodeApiLambdaExecutionRole.Arn
+      Environment:
+        Variables:
+          DYNAMO_TABLE_NAME: "{{resolve:ssm:/btg/common/DYNAMO_USER_TABLE}}"
+          NOTIFICATION_TOPIC_ARN: "{{resolve:ssm:/btg/common/NOTIFICATION_TOPIC_ARN}}"
+          TWILIO_FROM_NUMBER: "{{resolve:ssm:/btg/api-node/TWILIO_FROM_NUMBER}}"
+          BASE_URL_JAVA: "{{resolve:ssm:/btg/common/BASE_URL}}"
+
+
+Outputs:
+  NodeApiFunctionName:
+    Description: Nombre de la Lambda Node API
+    Value: !Ref NodeApiFunction

@@ -1,0 +1,30 @@
+[
+  {
+    "ParameterKey": "Environment",
+    "ParameterValue": "dev"
+  },
+  {
+    "ParameterKey": "DynamoTableName",
+    "ParameterValue": "Users"
+  },
+  {
+    "ParameterKey": "NotificationTopicArn",
+    "ParameterValue": "arn:aws:sns:us-east-1:423889617242:notificacion-suscription"
+  },
+ {
+    "ParameterKey": "TwilioAccountSid",
+    "ParameterValue": "${{ secrets.TWILIO_ACCOUNT_SID }}"
+  },
+  {
+    "ParameterKey": "TwilioAuthToken",
+    "ParameterValue": "${{ secrets.TWILIO_AUTH_TOKEN }}"
+  },
+  {
+    "ParameterKey": "TwilioFromNumber",
+    "ParameterValue": "${{ secrets.TWILIO_FROM_NUMBER }}"
+  },
+  {
+    "ParameterKey": "BaseUrlJava",
+    "ParameterValue": "https://api-btg.execute-api.us-east-1.amazonaws.com"
+  }
+]

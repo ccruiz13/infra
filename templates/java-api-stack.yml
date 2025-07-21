@@ -1,0 +1,84 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Stack para Lambda API Python que reutiliza parámetros y recursos compartidos
+
+Parameters:
+  S3Bucket:
+    Type: String
+    Default: ccruiz-btg-functions
+
+Resources:
+  PythonApiLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: api-python-funds
+      Runtime: python3.12
+      Role: !ImportValue LambdaExecutionRoleArn
+      Handler: main.handler
+      Code:
+        S3Bucket: !Ref S3Bucket
+        S3Key: python/api-python-funds.zip
+      Timeout: 15
+      MemorySize: 512
+      Environment:
+        Variables:
+          AWS_REGION: "{{resolve:ssm:/btg/common/AWS_REGION}}"
+          BASE_URL: "{{resolve:ssm:/btg/common/BASE_URL}}"
+          JAVA_RUTE: "{{resolve:ssm:/btg/common/JAVA_RUTE}}"
+          NODE_RUTE: "{{resolve:ssm:/btg/common/NODE_RUTE}}"
+          PYTHON_RUTE: "{{resolve:ssm:/btg/common/PYTHON_RUTE}}"
+          DYNAMO_USER_TABLE: "{{resolve:ssm:/btg/common/DYNAMO_USER_TABLE}}"
+          NOTIFICATION_TOPIC_ARN: "{{resolve:ssm:/btg/common/NOTIFICATION_TOPIC_ARN}}"
+
+  PythonApiGateway:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: python-api-gateway
+      EndpointConfiguration:
+        Types:
+          - EDGE
+
+  PythonApiResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId:
+        Fn::GetAtt:
+          - PythonApiGateway
+          - RootResourceId
+      PathPart: python
+      RestApiId: !Ref PythonApiGateway
+
+  PythonApiMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: ANY
+      ResourceId: !Ref PythonApiResource
+      RestApiId: !Ref PythonApiGateway
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri:
+          Fn::Sub: >-
+            arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${PythonApiLambda.Arn}/invocations
+
+  PythonApiDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn: PythonApiMethod
+    Properties:
+      RestApiId: !Ref PythonApiGateway
+      StageName: prod
+
+  LambdaApiPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref PythonApiLambda
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: 
+        Fn::Sub: arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${PythonApiGateway}/*/*/*
+
+Outputs:
+  ApiUrl:
+    Description: "URL base para invocar la API de Python"
+    Value: 
+      Fn::Sub: https://${PythonApiGateway}.execute-api.${AWS::Region}.amazonaws.com/prod/python
